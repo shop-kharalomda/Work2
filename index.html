@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>فحص أرقام واتساب</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; background-color: #f7f7f7; }
+    input, button { margin: 10px; padding: 10px; font-size: 16px; }
+    #progress { width: 100%; background: #ddd; margin-top: 20px; border-radius: 5px; }
+    #progressBar { width: 0%; height: 30px; background: green; color: white; line-height: 30px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h2>فحص أرقام واتساب</h2>
+  <input type="file" id="fileInput" accept=".txt,.csv,.xlsx"><br>
+  <button onclick="startCheck()">بدء الفحص</button>
+
+  <div id="progress"><div id="progressBar">0%</div></div>
+
+  <div id="downloadButtons" style="display:none; margin-top:20px;"></div>
+
+  <script>
+    function startCheck() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return alert("اختر ملف أولاً");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/check", true);
+
+      xhr.responseType = "json";
+
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          document.getElementById("progressBar").style.width = percent + "%";
+          document.getElementById("progressBar").innerText = percent + "%";
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const links = xhr.response;
+          const btns = document.getElementById("downloadButtons");
+          btns.innerHTML = "";
+          ["valid", "invalid"].forEach(type => {
+            ["txt", "csv", "xlsx"].forEach(ext => {
+              const a = document.createElement("a");
+              a.href = links[`${type}_${ext}`];
+              a.innerText = `تحميل ${type === "valid" ? "الصالح" : "غير الصالح"} (${ext})`;
+              a.style.display = "block";
+              a.download = "";
+              btns.appendChild(a);
+            });
+          });
+          btns.style.display = "block";
+        } else {
+          alert("حدث خطأ أثناء الفحص");
+        }
+      };
+
+      xhr.send(formData);
+    }
+  </script>
+</body>
+</html>
